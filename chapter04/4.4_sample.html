@@ -8,7 +8,10 @@
 <div id="app">
     <nav>
         <router-link to="/top">Top</router-link>
-        <router-link to="/users">User</router-linl>
+        <router-link to="/users">User</router-link>
+        <router-link to="/users/new?redirect=true">CreateUser</router-link>
+        <router-link to="login" v-show="!Auth.loggedIn()">Login</router-link>
+        <router-link to="logout" v-show="Auth.loggedIn()">Logout</router-link>
     </nav>
     <router-view></router-view>
 </div>
@@ -23,7 +26,7 @@
             {{ error }}
         </div>
         <div v-for="user in users" :key="user.id">
-            <h2>{{ user.name }}</h2>
+            <router-link :to="{ path: '/users/' + user.id }">{{ user.name }}</router-link>
         </div>
     </div>
 </script>
@@ -47,11 +50,11 @@
         <div>
             <h2>New Create User</h2>
             <div>
-                <label>name</label>
+                <label>name: </label>
                 <input type="text" v-model="user.name">
             </div>
             <div>
-                <label>description</label>
+                <label>description: </label>
                 <input type="text" v-model="user.description">
             </div>
             <div class="error" v-if=error>
@@ -61,6 +64,23 @@
                 <input type="button" @click="createUser" value="send">
             </div>
         </div>
+    </div>
+</script>
+
+<script type="text/x-template" id="login">
+    <div>
+        <h2>Login</h2>
+        <p v-if="$route.query.redirect">
+            pleace login
+        </p>
+        <form @submit.prevent="login">
+            <label><input type="text" v-model="email" placeholder="email"></label>
+            <label><input type="password" v-model="pass" placeholder="password"></label>
+            <button type="submit">
+                login
+            </button>
+            <p v-if="error" class="error">failed login</p>
+        </form>
     </div>
 </script>
 
@@ -120,17 +140,8 @@
     }
 
     var getUsers = function (callback) {
-        setTimeout(function () {
-            callback(null, [
-                {
-                    id: 1,
-                    name: 'Kumada Riku',
-                },
-                {
-                    id: 2,
-                    name: 'Kumada Yoko',
-                },
-            ]);
+        setTimeout(function(){
+            callback(null, userData);
         }, 1000);
     };
 
@@ -165,6 +176,96 @@
                 }).bind(this));
             },
         },
+    };
+
+    var postUser = function (params, callback) {
+        setTimeout(function () {
+            params.id = userData.length + 1;
+            userData.push(params);
+            callback(null, params);
+        }, 1000);
+    };
+
+    var UserCreate = {
+        template: '#user-create',
+        data: function () {
+            return {
+                sending: false,
+                user: this.defaultUser(),
+                error: null,
+            };
+        },
+        created: function () { },
+        methods: {
+            defaultUser: function () {
+                return {
+                    name: '',
+                    description: '',
+                };
+            },
+            createUser: function () {
+                if (this.user.name.trim() === '') {
+                    this.error = 'name is required';
+                    return;
+                }
+                if (this.user.description.trim() === '') {
+                    this.error = 'description is required';
+                    return;
+                }
+                postUser(this.user, (function (err, user) {
+                    this.sending = false;
+                    if (err) {
+                        this.error = err.toString();
+                    } else {
+                        this.eror = null;
+                        this.user = this.defaultUser();
+                        alert('create user')
+                        this.$router.push('/users');
+                    }
+                }).bind(this))
+            },
+        }
+    }
+
+    var Login = {
+        template: '#login',
+        data: function () {
+            return {
+                email: 'vue@example.com',
+                pass: '',
+                error: false,
+            };
+        },
+        methods: {
+            login: function () {
+                Auth.login(this.email, this.pass, (function (loggedIn) {
+                    if (!loggedIn) {
+                        this.error = true;
+                    } else {
+                        this.$router.replace(this.$route.query.redirect || '/');
+                    }
+                }).bind(this));
+            }
+        }
+    }
+
+    var Auth = {
+        login: function (email, pass, cd) {
+            setTimeout(function () {
+                if (email === 'vue@example.com' && pass === 'vue') {
+                    localStorage.token = Math.random().toString(36).substring(7);
+                    if (cd) { cd(true) }
+                } else {
+                    if (cd) { cd(false) }
+                }
+            }, 0);
+        },
+        logout: function () {
+            delete localStorage.token;
+        },
+        loggedIn: function () {
+            return !!localStorage.token;
+        }
     }
 
     var router = new VueRouter({
@@ -180,17 +281,45 @@
                 component: UserList,
             },
             {
-                path: '/usrs/new',
+                path: '/users/new',
                 component: UserCreate,
+                beforeEnter: function (to, from, next) {
+                    if (!Auth.loggedIn()) {
+                        next({
+                            path: '/login',
+                            query: { redirect: to.fullPath },
+                        });
+                    } else {
+                        next()
+                    }
+                },
             },
             {
                 path: '/users/:userId',
                 component: UserDetail,
             },
+            {
+                path: '/login',
+                component: Login,
+            },
+            {
+                path: '/logout',
+                beforeEnter: function (to, from, next) {
+                    Auth.logout();
+                    next('/top');
+                },
+            },
+            {
+                path: '*',
+                redirect: '/top',
+            },
         ],
     });
 
     var app = new Vue({
+        data: {
+            Auth: Auth,
+        },
         router: router,
     }).$mount('#app');
 </script>
