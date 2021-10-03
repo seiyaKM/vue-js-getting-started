@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>Vue app</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/vue@2.5.17"></script>
+
+<div id="app">
+    <button @click="isShow = !isShow">change view</button>
+    <transition>
+        <p v-show="isShow">Hello, world!</p>
+    </transition>
+</div>
+
+<script src="./app.js"></script>
