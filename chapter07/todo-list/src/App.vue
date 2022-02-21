@@ -29,6 +29,30 @@
     <form @submit.prevent="addLabel">
       <input type="text" v-model="newLabelText" placeholder="new label" />
     </form>
+
+    <h2>Filter of Label</h2>
+    <ul>
+      <li v-for="label in labels" :key="label.id">
+        <input
+          type="radio"
+          :checked="label.id === filter"
+          @change="changeFilter(label.id)"
+        />
+        {{ label.text }}
+      </li>
+      <li>
+        <input
+          type="radio"
+          :checked="filter === null"
+          @change="changeFilter(null)"
+        />
+        not filter
+      </li>
+    </ul>
+
+    <h2>save and restore</h2>
+    <button @click="save">save</button>
+    <button @click="restore">restore</button>
   </div>
 </template>
 
@@ -44,10 +68,13 @@ export default {
   },
   computed: {
     tasks() {
-      return this.$store.state.tasks;
+      return this.$store.getters.filteredTasks;
     },
     labels() {
       return this.$store.state.labels;
+    },
+    filter() {
+      return this.$store.state.filter;
     },
   },
   methods: {
@@ -74,6 +101,16 @@ export default {
     getLabelText(id) {
       const label = this.labels.find((label) => label.id === id);
       return label ? label.text : "";
+    },
+    changeFilter(labelId) {
+      this.$store.commit("changeFilter", { filter: labelId });
+    },
+
+    save() {
+      this.$store.dispatch("save");
+    },
+    restore() {
+      this.$store.dispatch("restore");
     },
   },
 };

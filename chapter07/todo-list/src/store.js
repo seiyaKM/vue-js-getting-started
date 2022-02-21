@@ -36,6 +36,20 @@ const store = new Vuex.Store({
       },
     ],
     nextLabelId: 4,
+
+    filter: null,
+  },
+
+  getters: {
+    filteredTasks(state) {
+      if (!state.filter) {
+        return state.tasks;
+      }
+
+      return state.tasks.filter((task) => {
+        return task.labelIds.indexOf(state.filter) >= 0;
+      });
+    },
   },
 
   mutations: {
@@ -64,6 +78,36 @@ const store = new Vuex.Store({
         text,
       });
       state.nextLabelId++;
+    },
+
+    changeFilter(state, { filter }) {
+      state.filter = filter;
+    },
+
+    restore(state, { tasks, labels, nextTaskId, nextLabelId }) {
+      state.tasks = tasks;
+      state.labels = labels;
+      state.nextTaskId = nextTaskId;
+      state.nextLabelId = nextLabelId;
+    },
+  },
+
+  actions: {
+    save({ state }) {
+      const data = {
+        tasks: state.tasks,
+        labels: state.labels,
+        nextTaskId: state.nextTaskId,
+        nextLabelId: state.nextLabelId,
+      };
+      localStorage.setItem("task-app-data", JSON.stringify(data));
+    },
+
+    restore({ commit }) {
+      const data = localStorage.getItem("task-app-data");
+      if (data) {
+        commit("restore", JSON.parse(data));
+      }
     },
   },
 });
